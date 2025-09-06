@@ -1,0 +1,97 @@
+1. Admin Dashboard (Gym Owner Panel)
+
+Show total enrolled members.
+
+Show pending fees and submitted fees.
+
+Show memberships nearing expiry (highlight in red).
+
+Graphical analytics:
+
+Monthly revenue trend.
+
+Active vs. inactive members.
+
+Churn rate (non-renewals).
+
+Reports export: generate Excel/PDF for payments and members.
+
+Communication panel with quick actions:
+
+Send WhatsApp reminders.
+
+Send Email notifications.
+
+Announcements (offers, holidays, new classes).
+
+2. Member Self-Registration via QR
+
+Generate a QR code in the admin dashboard using a library like react-qr-code.
+
+QR code encodes a URL like https://mygymapp.com/register?gymId=123.
+
+When members scan it, they open a registration form with fields:
+
+Name, Contact (phone/email), Age, Plan selection.
+
+On submission, data is stored in DB and linked to that gym.
+
+Admin dashboard updates in real time with new members.
+
+3. Authentication System
+
+JWT-based authentication for gym owners.
+
+Gym owners must log in to access the dashboard.
+
+Optionally, members can log in to view their:
+
+Subscription status.
+
+Payment history.
+
+Attendance history.
+
+4. Attendance Tracking (QR Check-in)
+
+Each member has a unique QR code ID.
+
+Gym scans this code on entry (or member self-scans).
+
+Attendance is logged in DB with timestamp.
+
+Admin can see attendance history in member profiles.
+
+5. Payment Integration
+
+Integrate Stripe or Razorpay for membership payments.
+
+Admin defines membership plans (monthly, quarterly, yearly).
+
+Members pay online via UPI, card, or wallet.
+
+Backend tracks:
+
+Payment status (pending, paid, failed).
+
+Generates downloadable receipts (PDF/email).
+
+Payment history stored in database.
+
+6. Messaging System (WhatsApp + Email)
+
+WhatsApp reminders using Twilio WhatsApp API.
+
+Email reminders and receipts using Nodemailer or SendGrid.
+
+Automated recurring reminders for renewals.
+
+Personalized messages: birthdays, fitness tips, offers.
+
+7. Multi-Branch Support
+
+A single gym owner account can manage multiple branches.
+
+Each branch has its own dashboard, members, and reports.
+
+Owner can switch between branches.

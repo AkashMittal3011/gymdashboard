@@ -51,30 +51,30 @@ export default function Communication() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch user's gyms and branches
-  const { data: gyms } = useQuery({
+  const { data: gyms } = useQuery<any[]>({
     queryKey: ["/api/gyms"],
     enabled: !!user,
   });
 
-  const { data: branches } = useQuery({
-    queryKey: ["/api/branches", gyms?.[0]?.id],
-    enabled: !!gyms?.[0]?.id,
+  const { data: branches } = useQuery<any[]>({
+    queryKey: ["/api/branches", (gyms || [])[0]?.id],
+    enabled: !!(gyms || [])[0]?.id,
   });
 
-  const { data: communications, isLoading } = useQuery({
+  const { data: communications, isLoading } = useQuery<any[]>({
     queryKey: ["/api/communications", selectedBranch],
     enabled: !!selectedBranch,
   });
 
-  const { data: members } = useQuery({
+  const { data: members } = useQuery<any[]>({
     queryKey: ["/api/members", selectedBranch],
     enabled: !!selectedBranch,
   });
 
   // Set first branch as default
   useEffect(() => {
-    if (branches?.length > 0 && !selectedBranch) {
-      setSelectedBranch(branches[0].id);
+    if ((branches || []).length > 0 && !selectedBranch) {
+      setSelectedBranch((branches || [])[0].id);
     }
   }, [branches, selectedBranch]);
 
@@ -150,10 +150,10 @@ export default function Communication() {
     }
   };
 
-  const filteredCommunications = communications?.filter((comm: any) =>
+  const filteredCommunications = (communications || []).filter((comm: any) =>
     comm.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     comm.message.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  );
 
   return (
     <div className="flex h-screen bg-background">
@@ -253,28 +253,28 @@ export default function Communication() {
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Messages Sent Today</span>
                         <span className="font-semibold text-foreground" data-testid="text-messages-today">
-                          {communications?.filter((c: any) => {
+                          {(communications || []).filter((c: any) => {
                             const sentDate = new Date(c.sentAt);
                             const today = new Date();
                             return sentDate.toDateString() === today.toDateString();
-                          }).length || 0}
+                          }).length}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">This Week</span>
                         <span className="font-semibold text-foreground" data-testid="text-messages-week">
-                          {communications?.filter((c: any) => {
+                          {(communications || []).filter((c: any) => {
                             const sentDate = new Date(c.sentAt);
                             const sevenDaysAgo = new Date();
                             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
                             return sentDate >= sevenDaysAgo;
-                          }).length || 0}
+                          }).length}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Total Members</span>
                         <span className="font-semibold text-foreground" data-testid="text-total-members">
-                          {members?.length || 0}
+                          {(members || []).length}
                         </span>
                       </div>
                     </CardContent>

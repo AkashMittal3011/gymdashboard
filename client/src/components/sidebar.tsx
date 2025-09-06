@@ -8,13 +8,9 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-interface SidebarProps {
-  currentBranch?: string;
-  branches?: Array<{ id: string; name: string }>;
-  onBranchChange?: (branchId: string) => void;
-}
+interface SidebarProps {}
 
-export default function Sidebar({ currentBranch, branches = [], onBranchChange }: SidebarProps) {
+export default function Sidebar({}: SidebarProps = {}) {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -57,24 +53,6 @@ export default function Sidebar({ currentBranch, branches = [], onBranchChange }
           </div>
         </div>
 
-        {/* Branch Selector */}
-        {branches.length > 0 && (
-          <div className="p-4 border-b border-border">
-            <label className="text-sm font-medium text-muted-foreground">Current Branch</label>
-            <Select value={currentBranch} onValueChange={onBranchChange}>
-              <SelectTrigger className="w-full mt-1" data-testid="select-branch">
-                <SelectValue placeholder="Select branch" />
-              </SelectTrigger>
-              <SelectContent>
-                {branches.map((branch) => (
-                  <SelectItem key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
 
         <nav className="mt-4">
           <ul className="space-y-1 px-4">

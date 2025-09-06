@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
@@ -18,40 +18,17 @@ import { useAuth } from "@/hooks/use-auth";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [selectedBranch, setSelectedBranch] = useState<string>("");
 
-  // Fetch user's gyms and branches
-  const { data: gyms } = useQuery({
-    queryKey: ["/api/gyms"],
+  // Fetch analytics and data for the user's gyms
+  const { data: metrics } = useQuery({
+    queryKey: ["/api/analytics"],
     enabled: !!user,
   });
 
-  const { data: branches } = useQuery({
-    queryKey: ["/api/branches", gyms?.[0]?.id],
-    enabled: !!gyms?.[0]?.id,
-  });
-
-  const { data: currentBranch } = useQuery({
-    queryKey: ["/api/branch", selectedBranch],
-    enabled: !!selectedBranch,
-  });
-
-  const { data: metrics } = useQuery({
-    queryKey: ["/api/analytics", selectedBranch],
-    enabled: !!selectedBranch,
-  });
-
   const { data: expiringMembers } = useQuery({
-    queryKey: ["/api/members/expiring", selectedBranch, "7"],
-    enabled: !!selectedBranch,
+    queryKey: ["/api/members/expiring", "7"],
+    enabled: !!user,
   });
-
-  // Set first branch as default
-  useEffect(() => {
-    if (branches?.length > 0 && !selectedBranch) {
-      setSelectedBranch(branches[0].id);
-    }
-  }, [branches, selectedBranch]);
 
   const defaultMetrics = {
     totalMembers: 0,
@@ -60,35 +37,26 @@ export default function Dashboard() {
     pendingFees: 0,
   };
 
+  const safeMetrics = metrics || defaultMetrics;
+  const safeExpiringMembers = expiringMembers || [];
+
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar 
-        currentBranch={selectedBranch}
-        branches={branches}
-        onBranchChange={setSelectedBranch}
-      />
+      <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title="Dashboard Overview" />
         
         <main className="flex-1 overflow-auto p-6">
-          {!selectedBranch ? (
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-muted-foreground">Please select a branch to view dashboard</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {/* Key Metrics */}
-              <MetricsCards 
-                metrics={metrics || defaultMetrics} 
-                isLoading={!metrics && !!selectedBranch}
-              />
+          {/* Key Metrics */}
+          <MetricsCards 
+            metrics={safeMetrics} 
+            isLoading={!metrics && !!user}
+          />
 
-              {/* Charts and Analytics */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <RevenueChart isLoading={!metrics && !!selectedBranch} />
+          {/* Charts and Analytics */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <RevenueChart isLoading={!metrics && !!user} />
                 
                 {/* Member Analytics */}
                 <Card className="shadow-sm">
@@ -103,12 +71,12 @@ export default function Dashboard() {
                           <div 
                             className="bg-chart-2 h-2 rounded-full transition-all duration-300" 
                             style={{ 
-                              width: `${metrics ? Math.round((metrics.activeMembers / metrics.totalMembers) * 100) : 0}%` 
+                              width: `${safeMetrics.totalMembers > 0 ? Math.round((safeMetrics.activeMembers / safeMetrics.totalMembers) * 100) : 0}%` 
                             }}
                           />
                         </div>
                         <span className="text-sm font-medium text-foreground">
-                          {metrics ? Math.round((metrics.activeMembers / metrics.totalMembers) * 100) : 0}%
+                          {safeMetrics.totalMembers > 0 ? Math.round((safeMetrics.activeMembers / safeMetrics.totalMembers) * 100) : 0}%
                         </span>
                       </div>
                     </div>
@@ -120,12 +88,12 @@ export default function Dashboard() {
                           <div 
                             className="bg-chart-1 h-2 rounded-full transition-all duration-300" 
                             style={{ 
-                              width: `${metrics ? Math.round(((metrics.totalMembers - metrics.activeMembers) / metrics.totalMembers) * 100) : 0}%` 
+                              width: `${safeMetrics.totalMembers > 0 ? Math.round(((safeMetrics.totalMembers - safeMetrics.activeMembers) / safeMetrics.totalMembers) * 100) : 0}%` 
                             }}
                           />
                         </div>
                         <span className="text-sm font-medium text-foreground">
-                          {metrics ? Math.round(((metrics.totalMembers - metrics.activeMembers) / metrics.totalMembers) * 100) : 0}%
+                          {safeMetrics.totalMembers > 0 ? Math.round(((safeMetrics.totalMembers - safeMetrics.activeMembers) / safeMetrics.totalMembers) * 100) : 0}%
                         </span>
                       </div>
                     </div>
@@ -135,15 +103,15 @@ export default function Dashboard() {
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Total Members</span>
-                          <span className="font-medium text-foreground">{metrics?.totalMembers || 0}</span>
+                          <span className="font-medium text-foreground">{safeMetrics.totalMembers}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Active Members</span>
-                          <span className="font-medium text-foreground">{metrics?.activeMembers || 0}</span>
+                          <span className="font-medium text-foreground">{safeMetrics.activeMembers}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Monthly Revenue</span>
-                          <span className="font-medium text-foreground">₹{metrics?.monthlyRevenue.toLocaleString() || 0}</span>
+                          <span className="font-medium text-foreground">₹{safeMetrics.monthlyRevenue.toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
@@ -158,17 +126,17 @@ export default function Dashboard() {
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle data-testid="text-expiring-memberships-title">Expiring Memberships</CardTitle>
                     <Badge variant="destructive" data-testid="badge-urgent-count">
-                      {expiringMembers?.length || 0} Urgent
+                      {safeExpiringMembers.length} Urgent
                     </Badge>
                   </CardHeader>
                   <CardContent>
-                    {!expiringMembers?.length ? (
+                    {!safeExpiringMembers.length ? (
                       <p className="text-center text-muted-foreground py-4">
                         No memberships expiring soon
                       </p>
                     ) : (
                       <div className="space-y-3">
-                        {expiringMembers.slice(0, 3).map((member: any) => (
+                        {safeExpiringMembers.slice(0, 3).map((member: any) => (
                           <div 
                             key={member.id}
                             className="flex items-center justify-between p-3 rounded-lg border border-destructive/20 bg-destructive/5"
@@ -199,7 +167,7 @@ export default function Dashboard() {
                       </div>
                     )}
                     
-                    {expiringMembers?.length > 3 && (
+                    {safeExpiringMembers.length > 3 && (
                       <div className="mt-4 pt-4 border-t border-border">
                         <Button variant="ghost" className="w-full" data-testid="button-view-all-expiring">
                           View All Expiring Memberships →
@@ -211,8 +179,6 @@ export default function Dashboard() {
 
                 {/* QR Registration */}
                 <QRCodeGenerator
-                  branchId={selectedBranch}
-                  currentQRCode={currentBranch?.qrCodeUrl}
                   todayRegistrations={0}
                   weekRegistrations={0}
                 />
@@ -434,8 +400,6 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               </div>
-            </>
-          )}
         </main>
       </div>
     </div>

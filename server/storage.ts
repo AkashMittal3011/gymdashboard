@@ -149,12 +149,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMembersByUser(userId: string): Promise<Member[]> {
-    return await db.select()
+    const result = await db.select({
+      id: members.id,
+      name: members.name,
+      email: members.email,
+      phone: members.phone,
+      createdAt: members.createdAt,
+      status: members.status,
+      age: members.age,
+      branchId: members.branchId,
+      membershipPlan: members.membershipPlan,
+      membershipStart: members.membershipStart,
+      membershipEnd: members.membershipEnd,
+      qrCodeId: members.qrCodeId,
+      stripeCustomerId: members.stripeCustomerId,
+      stripeSubscriptionId: members.stripeSubscriptionId
+    })
       .from(members)
       .innerJoin(branches, eq(members.branchId, branches.id))
       .innerJoin(gyms, eq(branches.gymId, gyms.id))
       .where(eq(gyms.ownerId, userId))
       .orderBy(desc(members.createdAt));
+    return result;
   }
 
   async getMember(id: string): Promise<Member | undefined> {
@@ -188,7 +204,22 @@ export class DatabaseStorage implements IStorage {
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + days);
     
-    return await db.select()
+    const result = await db.select({
+      id: members.id,
+      name: members.name,
+      email: members.email,
+      phone: members.phone,
+      createdAt: members.createdAt,
+      status: members.status,
+      age: members.age,
+      branchId: members.branchId,
+      membershipPlan: members.membershipPlan,
+      membershipStart: members.membershipStart,
+      membershipEnd: members.membershipEnd,
+      qrCodeId: members.qrCodeId,
+      stripeCustomerId: members.stripeCustomerId,
+      stripeSubscriptionId: members.stripeSubscriptionId
+    })
       .from(members)
       .innerJoin(branches, eq(members.branchId, branches.id))
       .innerJoin(gyms, eq(branches.gymId, gyms.id))
@@ -198,6 +229,7 @@ export class DatabaseStorage implements IStorage {
         gte(members.membershipEnd, new Date())
       ))
       .orderBy(members.membershipEnd);
+    return result;
   }
 
   async createPayment(payment: InsertPayment): Promise<Payment> {
@@ -292,7 +324,14 @@ export class DatabaseStorage implements IStorage {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    return await db.select()
+    const result = await db.select({
+      id: attendance.id,
+      createdAt: attendance.createdAt,
+      branchId: attendance.branchId,
+      memberId: attendance.memberId,
+      checkInTime: attendance.checkInTime,
+      checkOutTime: attendance.checkOutTime
+    })
       .from(attendance)
       .innerJoin(branches, eq(attendance.branchId, branches.id))
       .innerJoin(gyms, eq(branches.gymId, gyms.id))
@@ -301,6 +340,7 @@ export class DatabaseStorage implements IStorage {
         gte(attendance.checkInTime, today),
         lte(attendance.checkInTime, tomorrow)
       ));
+    return result;
   }
 
   async createCommunication(communication: InsertCommunication): Promise<Communication> {
@@ -313,12 +353,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCommunicationsByUser(userId: string): Promise<Communication[]> {
-    return await db.select()
+    const result = await db.select({
+      id: communications.id,
+      message: communications.message,
+      type: communications.type,
+      status: communications.status,
+      branchId: communications.branchId,
+      memberId: communications.memberId,
+      subject: communications.subject,
+      sentAt: communications.sentAt
+    })
       .from(communications)
       .innerJoin(branches, eq(communications.branchId, branches.id))
       .innerJoin(gyms, eq(branches.gymId, gyms.id))
       .where(eq(gyms.ownerId, userId))
       .orderBy(desc(communications.sentAt));
+    return result;
   }
 
   async getBranchMetrics(branchId: string): Promise<{

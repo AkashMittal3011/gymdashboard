@@ -28,30 +28,30 @@ export default function QRRegistration() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch user's gyms and branches
-  const { data: gyms } = useQuery({
+  const { data: gyms } = useQuery<any[]>({
     queryKey: ["/api/gyms"],
     enabled: !!user,
   });
 
-  const { data: branches } = useQuery({
-    queryKey: ["/api/branches", gyms?.[0]?.id],
-    enabled: !!gyms?.[0]?.id,
+  const { data: branches } = useQuery<any[]>({
+    queryKey: ["/api/branches", (gyms || [])[0]?.id],
+    enabled: !!(gyms || [])[0]?.id,
   });
 
-  const { data: currentBranch } = useQuery({
+  const { data: currentBranch } = useQuery<any>({
     queryKey: ["/api/branch", selectedBranch],
     enabled: !!selectedBranch,
   });
 
-  const { data: members, isLoading } = useQuery({
+  const { data: members, isLoading } = useQuery<any[]>({
     queryKey: ["/api/members", selectedBranch],
     enabled: !!selectedBranch,
   });
 
   // Set first branch as default
   useEffect(() => {
-    if (branches?.length > 0 && !selectedBranch) {
-      setSelectedBranch(branches[0].id);
+    if ((branches || []).length > 0 && !selectedBranch) {
+      setSelectedBranch((branches || [])[0].id);
     }
   }, [branches, selectedBranch]);
 
@@ -83,7 +83,7 @@ export default function QRRegistration() {
   };
 
   // Filter recent registrations (last 30 days)
-  const recentRegistrations = members?.filter((member: any) => {
+  const recentRegistrations = (members || []).filter((member: any) => {
     const memberDate = new Date(member.createdAt);
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -93,21 +93,21 @@ export default function QRRegistration() {
       member.phone.includes(searchTerm);
     
     return memberDate >= thirtyDaysAgo && matchesSearch;
-  }) || [];
+  });
 
   // Calculate registration stats
-  const todayRegistrations = members?.filter((member: any) => {
+  const todayRegistrations = (members || []).filter((member: any) => {
     const memberDate = new Date(member.createdAt);
     const today = new Date();
     return memberDate.toDateString() === today.toDateString();
-  }).length || 0;
+  }).length;
 
-  const weekRegistrations = members?.filter((member: any) => {
+  const weekRegistrations = (members || []).filter((member: any) => {
     const memberDate = new Date(member.createdAt);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     return memberDate >= sevenDaysAgo;
-  }).length || 0;
+  }).length;
 
   const monthRegistrations = recentRegistrations.length;
 
@@ -190,7 +190,7 @@ export default function QRRegistration() {
                       <div>
                         <p className="text-sm text-muted-foreground">Total Members</p>
                         <p className="text-2xl font-bold text-foreground" data-testid="text-total-members">
-                          {members?.length || 0}
+                          {(members || []).length}
                         </p>
                       </div>
                     </div>

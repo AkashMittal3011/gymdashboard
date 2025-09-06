@@ -276,7 +276,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const { branchId } = req.params;
-      const registrationUrl = `${process.env.REPLIT_DOMAINS?.split(',')[0] || 'http://localhost:5000'}/register?branchId=${branchId}`;
+      // Get the current domain from the request headers
+      const protocol = req.headers['x-forwarded-proto'] || 'http';
+      const host = req.headers.host || 'localhost:5000';
+      const baseUrl = `${protocol}://${host}`;
+      
+      const registrationUrl = `${baseUrl}/register?branchId=${branchId}`;
       const qrCodeUrl = await QRCode.toDataURL(registrationUrl);
       
       await storage.updateBranchQRCode(branchId, qrCodeUrl);

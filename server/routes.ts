@@ -276,13 +276,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const { branchId } = req.params;
-      // Get the current domain from the request headers
-      const protocol = req.headers['x-forwarded-proto'] || 'http';
-      const host = req.headers.host || 'localhost:5000';
-      const baseUrl = `${protocol}://${host}`;
+      
+      // Get the proper domain for Replit or development
+      let baseUrl;
+      if (process.env.REPLIT_DOMAINS) {
+        // Use the first Replit domain with https
+        const domain = process.env.REPLIT_DOMAINS.split(',')[0];
+        baseUrl = `https://${domain}`;
+      } else {
+        // For development, use the request headers
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const host = req.headers.host || 'localhost:5000';
+        baseUrl = `${protocol}://${host}`;
+      }
       
       const registrationUrl = `${baseUrl}/register?branchId=${branchId}`;
-      const qrCodeUrl = await QRCode.toDataURL(registrationUrl);
+      const qrCodeUrl = await QRCode.toDataURL(registrationUrl, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
       
       await storage.updateBranchQRCode(branchId, qrCodeUrl);
       res.json({ qrCodeUrl, registrationUrl });

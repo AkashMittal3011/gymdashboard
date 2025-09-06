@@ -178,6 +178,13 @@ export const insertMemberSchema = createInsertSchema(members).omit({
   id: true,
   createdAt: true,
   qrCodeId: true,
+}).extend({
+  membershipStart: z.string().or(z.date()).transform((val) => 
+    typeof val === 'string' ? new Date(val) : val
+  ),
+  membershipEnd: z.string().or(z.date()).transform((val) => 
+    typeof val === 'string' ? new Date(val) : val
+  ),
 });
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({

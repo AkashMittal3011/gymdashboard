@@ -98,11 +98,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/members/:branchId", async (req, res) => {
+  app.get("/api/members", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const members = await storage.getMembersByBranch(req.params.branchId);
+      const members = await storage.getMembersByUser(req.user.id);
       res.json(members);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -119,12 +119,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/members/expiring/:branchId/:days", async (req, res) => {
+  app.get("/api/members/expiring/:days", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
       const days = parseInt(req.params.days);
-      const members = await storage.getExpiringMembers(req.params.branchId, days);
+      const members = await storage.getExpiringMembersByUser(req.user.id, days);
       res.json(members);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -151,11 +151,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/payments/pending/:branchId", async (req, res) => {
+  app.get("/api/payments/pending", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const payments = await storage.getPendingPayments(req.params.branchId);
+      const payments = await storage.getPendingPaymentsByUser(req.user.id);
       res.json(payments);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -223,11 +223,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/attendance/today/:branchId", async (req, res) => {
+  app.get("/api/attendance/today", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const attendance = await storage.getTodayAttendance(req.params.branchId);
+      const attendance = await storage.getTodayAttendanceByUser(req.user.id);
       res.json(attendance);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -247,11 +247,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/communications/:branchId", async (req, res) => {
+  app.get("/api/communications", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const communications = await storage.getCommunicationsByBranch(req.params.branchId);
+      const communications = await storage.getCommunicationsByUser(req.user.id);
       res.json(communications);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -259,11 +259,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analytics routes
-  app.get("/api/analytics/:branchId", async (req, res) => {
+  app.get("/api/analytics", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     try {
-      const metrics = await storage.getBranchMetrics(req.params.branchId);
+      const metrics = await storage.getMetricsByUser(req.user.id);
       res.json(metrics);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

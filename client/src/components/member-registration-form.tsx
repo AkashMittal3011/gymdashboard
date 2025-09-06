@@ -13,8 +13,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Dumbbell, CheckCircle } from "lucide-react";
 
-const memberRegistrationSchema = insertMemberSchema.extend({
+const memberRegistrationSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email").optional().nullable(),
+  phone: z.string().min(1, "Phone is required"),
+  age: z.number().min(1).optional().nullable(),
   branchId: z.string().min(1, "Branch ID is required"),
+  membershipPlan: z.enum(["monthly", "quarterly", "yearly"]),
+  membershipStart: z.date(),
+  membershipEnd: z.date(),
+  status: z.enum(["active", "inactive", "expired"]).optional(),
 });
 
 type MemberRegistrationData = z.infer<typeof memberRegistrationSchema>;
@@ -43,7 +51,7 @@ export default function MemberRegistrationForm() {
       branchId: branchId,
       membershipPlan: "monthly",
       membershipStart: new Date(),
-      membershipEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      membershipEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   });
 
@@ -54,7 +62,7 @@ export default function MemberRegistrationForm() {
   }, [branchId, form]);
 
   const registerMutation = useMutation({
-    mutationFn: async (data: MemberRegistrationData) => {
+    mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/members", data);
       return await res.json();
     },
@@ -91,7 +99,20 @@ export default function MemberRegistrationForm() {
         break;
     }
 
-    registerMutation.mutate({ ...data, membershipEnd: endDate });
+    // Format data for the API
+    const apiData = {
+      name: data.name,
+      email: data.email || null,
+      phone: data.phone,
+      age: data.age || null,
+      branchId: data.branchId,
+      membershipPlan: data.membershipPlan,
+      membershipStart: startDate.toISOString(),
+      membershipEnd: endDate.toISOString(),
+      status: "active" as const
+    };
+
+    registerMutation.mutate(apiData);
   };
 
   if (isSuccess) {

@@ -72,129 +72,187 @@ export default function Reports() {
 
   // Export functions
   const exportMemberReport = () => {
-    if (!(members || []).length) {
+    try {
+      console.log('Exporting member report...');
+      console.log('Members data:', members);
+      
+      if (!(members || []).length) {
+        toast({
+          title: "No Data",
+          description: "No member data available to export. Please ensure members are loaded.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const exportData = (members || []).map((member: any) => ({
+        Name: member.name || 'N/A',
+        Email: member.email || 'N/A',
+        Phone: member.phone || 'N/A',
+        Age: member.age || 'N/A',
+        'Membership Plan': member.membershipPlan || member.membership_plan || 'N/A',
+        'Start Date': member.membershipStart ? new Date(member.membershipStart).toLocaleDateString() : 
+                      member.membership_start ? new Date(member.membership_start).toLocaleDateString() : 'N/A',
+        'End Date': member.membershipEnd ? new Date(member.membershipEnd).toLocaleDateString() : 
+                    member.membership_end ? new Date(member.membership_end).toLocaleDateString() : 'N/A',
+        Status: member.status || 'N/A'
+      }));
+      
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Members");
+      XLSX.writeFile(wb, `member-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+      
       toast({
-        title: "No Data",
-        description: "No member data available to export.",
+        title: "Export Successful",
+        description: `Member report with ${exportData.length} records has been downloaded as Excel file.`
+      });
+    } catch (error) {
+      console.error('Error exporting member report:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export member report. Please try again.",
         variant: "destructive"
       });
-      return;
     }
-
-    const ws = XLSX.utils.json_to_sheet((members || []).map((member: any) => ({
-      Name: member.name,
-      Email: member.email,
-      Phone: member.phone,
-      Age: member.age,
-      'Membership Plan': member.membership_plan,
-      'Start Date': new Date(member.membership_start).toLocaleDateString(),
-      'End Date': new Date(member.membership_end).toLocaleDateString(),
-      Status: member.status
-    })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Members");
-    XLSX.writeFile(wb, `member-report-${new Date().toISOString().split('T')[0]}.xlsx`);
-    
-    toast({
-      title: "Export Successful",
-      description: "Member report has been downloaded as Excel file."
-    });
   };
 
   const exportPaymentReport = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text('Payment Report', 20, 20);
-    doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 40);
-    doc.text(`Branch: ${(branches || []).find((b: any) => b.id === selectedBranch)?.name || 'N/A'}`, 20, 50);
-    
-    // Add payment summary
-    doc.text('Payment Summary:', 20, 70);
-    doc.text(`Monthly Revenue: ₹${(metrics?.monthlyRevenue || 0).toLocaleString()}`, 20, 80);
-    doc.text(`Pending Fees: ₹${(metrics?.pendingFees || 0).toLocaleString()}`, 20, 90);
-    doc.text(`Total Members: ${(members || []).length}`, 20, 100);
-    doc.text(`Active Members: ${(metrics?.activeMembers || 0)}`, 20, 110);
-    
-    if ((payments || []).length > 0) {
-      doc.text('Recent Payments:', 20, 130);
-      (payments || []).slice(0, 10).forEach((payment: any, index: number) => {
-        const y = 140 + (index * 10);
-        doc.text(`₹${payment.amount} - ${payment.status} - ${new Date(payment.due_date).toLocaleDateString()}`, 20, y);
+    try {
+      console.log('Exporting payment report...');
+      
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text('Payment Report', 20, 20);
+      doc.setFontSize(12);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 40);
+      doc.text(`Branch: ${(branches || []).find((b: any) => b.id === selectedBranch)?.name || 'All Branches'}`, 20, 50);
+      
+      // Add payment summary
+      doc.text('Payment Summary:', 20, 70);
+      doc.text(`Monthly Revenue: ₹${(metrics?.monthlyRevenue || 0).toLocaleString()}`, 20, 80);
+      doc.text(`Pending Fees: ₹${(metrics?.pendingFees || 0).toLocaleString()}`, 20, 90);
+      doc.text(`Total Members: ${(members || []).length}`, 20, 100);
+      doc.text(`Active Members: ${(metrics?.activeMembers || 0)}`, 20, 110);
+      
+      if ((payments || []).length > 0) {
+        doc.text('Recent Payments:', 20, 130);
+        (payments || []).slice(0, 10).forEach((payment: any, index: number) => {
+          const y = 140 + (index * 10);
+          const amount = payment.amount || '0';
+          const status = payment.status || 'Unknown';
+          const date = payment.due_date ? new Date(payment.due_date).toLocaleDateString() : 'N/A';
+          doc.text(`₹${amount} - ${status} - ${date}`, 20, y);
+        });
+      } else {
+        doc.text('No recent payments found.', 20, 130);
+      }
+      
+      doc.save(`payment-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: "Export Successful",
+        description: "Payment report has been downloaded as PDF file."
+      });
+    } catch (error) {
+      console.error('Error exporting payment report:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export payment report. Please try again.",
+        variant: "destructive"
       });
     }
-    
-    doc.save(`payment-report-${new Date().toISOString().split('T')[0]}.pdf`);
-    
-    toast({
-      title: "Export Successful",
-      description: "Payment report has been downloaded as PDF file."
-    });
   };
 
   const exportRevenueAnalysis = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text('Revenue Analysis Report', 20, 20);
-    doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 40);
-    doc.text(`Branch: ${(branches || []).find((b: any) => b.id === selectedBranch)?.name || 'N/A'}`, 20, 50);
-    
-    // Revenue metrics
-    doc.text('Revenue Metrics:', 20, 70);
-    doc.text(`Total Monthly Revenue: ₹${(metrics?.monthlyRevenue || 0).toLocaleString()}`, 20, 80);
-    doc.text(`Pending Collections: ₹${(metrics?.pendingFees || 0).toLocaleString()}`, 20, 90);
-    doc.text(`Collection Rate: 94%`, 20, 100);
-    doc.text(`Average Revenue per Member: ₹${Math.round((metrics?.monthlyRevenue || 0) / (metrics?.activeMembers || 1)).toLocaleString()}`, 20, 110);
-    
-    // Monthly breakdown
-    doc.text('Monthly Revenue Trend:', 20, 130);
-    revenueData.forEach((data, index) => {
-      const y = 140 + (index * 10);
-      doc.text(`${data.month}: ₹${data.revenue.toLocaleString()} (${data.members} members)`, 20, y);
-    });
-    
-    doc.save(`revenue-analysis-${new Date().toISOString().split('T')[0]}.pdf`);
-    
-    toast({
-      title: "Export Successful",
-      description: "Revenue analysis has been downloaded as PDF file."
-    });
+    try {
+      console.log('Exporting revenue analysis...');
+      
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text('Revenue Analysis Report', 20, 20);
+      doc.setFontSize(12);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 40);
+      doc.text(`Branch: ${(branches || []).find((b: any) => b.id === selectedBranch)?.name || 'All Branches'}`, 20, 50);
+      
+      // Revenue metrics
+      doc.text('Revenue Metrics:', 20, 70);
+      doc.text(`Total Monthly Revenue: ₹${(metrics?.monthlyRevenue || 0).toLocaleString()}`, 20, 80);
+      doc.text(`Pending Collections: ₹${(metrics?.pendingFees || 0).toLocaleString()}`, 20, 90);
+      doc.text(`Collection Rate: 94%`, 20, 100);
+      const avgRevenue = Math.round((metrics?.monthlyRevenue || 0) / Math.max(metrics?.activeMembers || 1, 1));
+      doc.text(`Average Revenue per Member: ₹${avgRevenue.toLocaleString()}`, 20, 110);
+      
+      // Monthly breakdown
+      doc.text('Monthly Revenue Trend:', 20, 130);
+      revenueData.forEach((data, index) => {
+        const y = 140 + (index * 10);
+        doc.text(`${data.month}: ₹${data.revenue.toLocaleString()} (${data.members} members)`, 20, y);
+      });
+      
+      doc.save(`revenue-analysis-${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast({
+        title: "Export Successful",
+        description: "Revenue analysis has been downloaded as PDF file."
+      });
+    } catch (error) {
+      console.error('Error exporting revenue analysis:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export revenue analysis. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const exportAttendanceReport = () => {
-    const attendanceReportData = attendanceData.map(data => ({
-      Day: data.day,
-      Attendance: data.attendance,
-      'Peak Time': '6-8 PM',
-      'Avg Duration': '90 mins'
-    }));
-
-    // Add member attendance if available
-    if ((attendance || []).length > 0) {
-      const memberAttendance = (attendance || []).map((att: any) => ({
-        'Member Name': att.member?.name || 'N/A',
-        'Check In': new Date(att.check_in_time).toLocaleString(),
-        Date: new Date(att.check_in_time).toLocaleDateString()
-      }));
+    try {
+      console.log('Exporting attendance report...');
+      console.log('Attendance data:', attendance);
       
-      const ws1 = XLSX.utils.json_to_sheet(attendanceReportData);
-      const ws2 = XLSX.utils.json_to_sheet(memberAttendance);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws1, "Daily Attendance");
-      XLSX.utils.book_append_sheet(wb, ws2, "Member Check-ins");
-      XLSX.writeFile(wb, `attendance-report-${new Date().toISOString().split('T')[0]}.xlsx`);
-    } else {
-      const ws = XLSX.utils.json_to_sheet(attendanceReportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-      XLSX.writeFile(wb, `attendance-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+      const attendanceReportData = attendanceData.map(data => ({
+        Day: data.day,
+        Attendance: data.attendance,
+        'Peak Time': '6-8 PM',
+        'Avg Duration': '90 mins'
+      }));
+
+      // Add member attendance if available
+      if ((attendance || []).length > 0) {
+        const memberAttendance = (attendance || []).map((att: any) => ({
+          'Member Name': att.member?.name || att.memberName || 'N/A',
+          'Check In': att.checkInTime ? new Date(att.checkInTime).toLocaleString() : 
+                      att.check_in_time ? new Date(att.check_in_time).toLocaleString() : 'N/A',
+          Date: att.checkInTime ? new Date(att.checkInTime).toLocaleDateString() : 
+                att.check_in_time ? new Date(att.check_in_time).toLocaleDateString() : 'N/A'
+        }));
+        
+        const ws1 = XLSX.utils.json_to_sheet(attendanceReportData);
+        const ws2 = XLSX.utils.json_to_sheet(memberAttendance);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws1, "Daily Attendance");
+        XLSX.utils.book_append_sheet(wb, ws2, "Member Check-ins");
+        XLSX.writeFile(wb, `attendance-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+      } else {
+        const ws = XLSX.utils.json_to_sheet(attendanceReportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+        XLSX.writeFile(wb, `attendance-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+      }
+      
+      toast({
+        title: "Export Successful",
+        description: `Attendance report has been downloaded as Excel file.`
+      });
+    } catch (error) {
+      console.error('Error exporting attendance report:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export attendance report. Please try again.",
+        variant: "destructive"
+      });
     }
-    
-    toast({
-      title: "Export Successful",
-      description: "Attendance report has been downloaded as Excel file."
-    });
   };
 
   const handleViewAllReports = () => {
@@ -366,19 +424,35 @@ export default function Reports() {
                               className={`w-full ${report.color}`}
                               data-testid={`button-export-${report.id}`}
                               onClick={() => {
-                                switch(report.id) {
-                                  case 'member-report':
-                                    exportMemberReport();
-                                    break;
-                                  case 'payment-report':
-                                    exportPaymentReport();
-                                    break;
-                                  case 'revenue-analysis':
-                                    exportRevenueAnalysis();
-                                    break;
-                                  case 'attendance-report':
-                                    exportAttendanceReport();
-                                    break;
+                                console.log('Export button clicked for:', report.id);
+                                try {
+                                  switch(report.id) {
+                                    case 'member-report':
+                                      exportMemberReport();
+                                      break;
+                                    case 'payment-report':
+                                      exportPaymentReport();
+                                      break;
+                                    case 'revenue-analysis':
+                                      exportRevenueAnalysis();
+                                      break;
+                                    case 'attendance-report':
+                                      exportAttendanceReport();
+                                      break;
+                                    default:
+                                      toast({
+                                        title: "Unknown Report",
+                                        description: `Report type '${report.id}' not recognized.`,
+                                        variant: "destructive"
+                                      });
+                                  }
+                                } catch (error) {
+                                  console.error('Error in export button click:', error);
+                                  toast({
+                                    title: "Export Error",
+                                    description: "An error occurred while exporting. Please try again.",
+                                    variant: "destructive"
+                                  });
                                 }
                               }}
                             >

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Table, 
   TableBody, 
@@ -16,25 +17,30 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Search, Plus, Filter, UserCheck, UserX, Clock } from "lucide-react";
+import MemberRegistrationForm from "@/components/member-registration-form";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Members() {
   const { user } = useAuth();
   const [selectedBranch, setSelectedBranch] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
+  const [showViewMemberDialog, setShowViewMemberDialog] = useState(false);
+  const [showEditMemberDialog, setShowEditMemberDialog] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
 
   // Fetch user's gyms and branches
-  const { data: gyms } = useQuery({
+  const { data: gyms = [] } = useQuery({
     queryKey: ["/api/gyms"],
     enabled: !!user,
   });
 
-  const { data: branches } = useQuery({
+  const { data: branches = [] } = useQuery({
     queryKey: ["/api/branches", gyms?.[0]?.id],
     enabled: !!gyms?.[0]?.id,
   });
 
-  const { data: members, isLoading } = useQuery({
+  const { data: members = [], isLoading } = useQuery({
     queryKey: ["/api/members", selectedBranch],
     enabled: !!selectedBranch,
   });
@@ -136,7 +142,10 @@ export default function Members() {
                     <Filter className="h-4 w-4 mr-2" />
                     Filter
                   </Button>
-                  <Button data-testid="button-add-member">
+                  <Button 
+                    data-testid="button-add-member"
+                    onClick={() => setShowAddMemberDialog(true)}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Member
                   </Button>
@@ -270,6 +279,10 @@ export default function Members() {
                                     size="sm" 
                                     variant="outline"
                                     data-testid={`button-view-member-${member.id}`}
+                                    onClick={() => {
+                                      setSelectedMember(member);
+                                      setShowViewMemberDialog(true);
+                                    }}
                                   >
                                     View
                                   </Button>
@@ -277,6 +290,10 @@ export default function Members() {
                                     size="sm" 
                                     variant="outline"
                                     data-testid={`button-edit-member-${member.id}`}
+                                    onClick={() => {
+                                      setSelectedMember(member);
+                                      setShowEditMemberDialog(true);
+                                    }}
                                   >
                                     Edit
                                   </Button>
@@ -294,6 +311,106 @@ export default function Members() {
           )}
         </main>
       </div>
+
+      {/* Add Member Dialog */}
+      <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Member</DialogTitle>
+            <DialogDescription>
+              Fill in the details to register a new member.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedBranch && (
+            <MemberRegistrationForm 
+              branchId={selectedBranch}
+              onSuccess={() => {
+                setShowAddMemberDialog(false);
+                // Refresh the members list
+                window.location.reload();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Member Dialog */}
+      <Dialog open={showViewMemberDialog} onOpenChange={setShowViewMemberDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Member Details</DialogTitle>
+          </DialogHeader>
+          {selectedMember && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback>
+                    {selectedMember.name.split(' ').map((n: string) => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-semibold">{selectedMember.name}</h3>
+                  <p className="text-sm text-muted-foreground">ID: {selectedMember.qrCodeId}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <label className="font-medium">Phone:</label>
+                  <p>{selectedMember.phone}</p>
+                </div>
+                {selectedMember.email && (
+                  <div>
+                    <label className="font-medium">Email:</label>
+                    <p>{selectedMember.email}</p>
+                  </div>
+                )}
+                {selectedMember.age && (
+                  <div>
+                    <label className="font-medium">Age:</label>
+                    <p>{selectedMember.age}</p>
+                  </div>
+                )}
+                <div>
+                  <label className="font-medium">Plan:</label>
+                  <p className="capitalize">{selectedMember.membershipPlan}</p>
+                </div>
+                <div>
+                  <label className="font-medium">Status:</label>
+                  <p className="capitalize">{selectedMember.status}</p>
+                </div>
+                <div>
+                  <label className="font-medium">Membership End:</label>
+                  <p>{new Date(selectedMember.membershipEnd).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Member Dialog */}
+      <Dialog open={showEditMemberDialog} onOpenChange={setShowEditMemberDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Member</DialogTitle>
+            <DialogDescription>
+              Update member information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedMember && selectedBranch && (
+            <MemberRegistrationForm 
+              branchId={selectedBranch}
+              initialData={selectedMember}
+              onSuccess={() => {
+                setShowEditMemberDialog(false);
+                setSelectedMember(null);
+                // Refresh the members list
+                window.location.reload();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

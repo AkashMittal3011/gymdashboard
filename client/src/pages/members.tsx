@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Sidebar from "@/components/sidebar";
 import Header from "@/components/header";
@@ -22,41 +22,23 @@ import { useAuth } from "@/hooks/use-auth";
 
 export default function Members() {
   const { user } = useAuth();
-  const [selectedBranch, setSelectedBranch] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
   const [showViewMemberDialog, setShowViewMemberDialog] = useState(false);
   const [showEditMemberDialog, setShowEditMemberDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
-  // Fetch user's gyms and branches
-  const { data: gyms = [] } = useQuery({
-    queryKey: ["/api/gyms"],
+  // Fetch all members for the user's gym
+  const { data: members = [], isLoading } = useQuery({
+    queryKey: ["/api/members"],
     enabled: !!user,
   });
 
-  const { data: branches = [] } = useQuery({
-    queryKey: ["/api/branches", gyms?.[0]?.id],
-    enabled: !!gyms?.[0]?.id,
-  });
-
-  const { data: members = [], isLoading } = useQuery({
-    queryKey: ["/api/members", selectedBranch],
-    enabled: !!selectedBranch,
-  });
-
-  // Set first branch as default
-  useEffect(() => {
-    if (branches?.length > 0 && !selectedBranch) {
-      setSelectedBranch(branches[0].id);
-    }
-  }, [branches, selectedBranch]);
-
-  const filteredMembers = members?.filter((member: any) =>
+  const filteredMembers = (members || []).filter((member: any) =>
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.phone.includes(searchTerm)
-  ) || [];
+  );
 
   const getStatusBadge = (status: string, membershipEnd: string) => {
     const endDate = new Date(membershipEnd);
@@ -107,25 +89,13 @@ export default function Members() {
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar 
-        currentBranch={selectedBranch}
-        branches={branches}
-        onBranchChange={setSelectedBranch}
-      />
+      <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title="Members Management" />
         
         <main className="flex-1 overflow-auto p-6">
-          {!selectedBranch ? (
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-muted-foreground">Please select a branch to view members</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {/* Header Actions */}
+          {/* Header Actions */}
               <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -307,8 +277,6 @@ export default function Members() {
                   )}
                 </CardContent>
               </Card>
-            </>
-          )}
         </main>
       </div>
 
@@ -321,16 +289,13 @@ export default function Members() {
               Fill in the details to register a new member.
             </DialogDescription>
           </DialogHeader>
-          {selectedBranch && (
-            <MemberRegistrationForm 
-              branchId={selectedBranch}
-              onSuccess={() => {
-                setShowAddMemberDialog(false);
-                // Refresh the members list
-                window.location.reload();
-              }}
-            />
-          )}
+          <MemberRegistrationForm 
+            onSuccess={() => {
+              setShowAddMemberDialog(false);
+              // Refresh the members list
+              window.location.reload();
+            }}
+          />
         </DialogContent>
       </Dialog>
 
@@ -397,9 +362,8 @@ export default function Members() {
               Update member information.
             </DialogDescription>
           </DialogHeader>
-          {selectedMember && selectedBranch && (
+          {selectedMember && (
             <MemberRegistrationForm 
-              branchId={selectedBranch}
               initialData={selectedMember}
               onSuccess={() => {
                 setShowEditMemberDialog(false);

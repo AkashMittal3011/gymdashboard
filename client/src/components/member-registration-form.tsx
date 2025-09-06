@@ -18,7 +18,6 @@ const memberRegistrationSchema = z.object({
   email: z.string().email("Invalid email").optional().nullable(),
   phone: z.string().min(1, "Phone is required"),
   age: z.number().min(1).optional().nullable(),
-  branchId: z.string().min(1, "Branch ID is required"),
   membershipPlan: z.enum(["monthly", "quarterly", "yearly"]),
   membershipStart: z.date(),
   membershipEnd: z.date(),
@@ -27,39 +26,27 @@ const memberRegistrationSchema = z.object({
 
 type MemberRegistrationData = z.infer<typeof memberRegistrationSchema>;
 
-export default function MemberRegistrationForm() {
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [branchId, setBranchId] = useState<string>("");
-  const { toast } = useToast();
+interface MemberRegistrationFormProps {
+  onSuccess?: () => void;
+  initialData?: any;
+}
 
-  useEffect(() => {
-    // Get branch ID from URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    const branchIdParam = urlParams.get('branchId');
-    if (branchIdParam) {
-      setBranchId(branchIdParam);
-    }
-  }, []);
+export default function MemberRegistrationForm({ onSuccess, initialData }: MemberRegistrationFormProps = {}) {
+  const [isSuccess, setIsSuccess] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<MemberRegistrationData>({
     resolver: zodResolver(memberRegistrationSchema),
     defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      age: undefined,
-      branchId: branchId,
-      membershipPlan: "monthly",
-      membershipStart: new Date(),
-      membershipEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      name: initialData?.name || "",
+      email: initialData?.email || "",
+      phone: initialData?.phone || "",
+      age: initialData?.age || undefined,
+      membershipPlan: initialData?.membershipPlan || "monthly",
+      membershipStart: initialData?.membershipStart ? new Date(initialData.membershipStart) : new Date(),
+      membershipEnd: initialData?.membershipEnd ? new Date(initialData.membershipEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   });
-
-  useEffect(() => {
-    if (branchId) {
-      form.setValue("branchId", branchId);
-    }
-  }, [branchId, form]);
 
   const registerMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -68,9 +55,12 @@ export default function MemberRegistrationForm() {
     },
     onSuccess: () => {
       setIsSuccess(true);
+      if (onSuccess) {
+        onSuccess();
+      }
       toast({
-        title: "Registration Successful!",
-        description: "You have been successfully registered as a gym member.",
+        title: initialData ? "Member Updated!" : "Registration Successful!",
+        description: initialData ? "Member information has been updated successfully." : "You have been successfully registered as a gym member.",
       });
     },
     onError: (error: Error) => {
@@ -105,7 +95,6 @@ export default function MemberRegistrationForm() {
       email: data.email || null,
       phone: data.phone,
       age: data.age || null,
-      branchId: data.branchId,
       membershipPlan: data.membershipPlan,
       membershipStart: startDate.toISOString(),
       membershipEnd: endDate.toISOString(),
